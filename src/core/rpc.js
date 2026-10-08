@@ -12,6 +12,7 @@ import {
 } from 'viem';
 import { ERC20_ABI, ERC721_ABI, ERC1155_ABI } from './tx.js';
 import { WalletError } from './errors.js';
+import { L1_ORACLES } from './chains.js';
 
 export class RpcError extends Error {
   constructor(message, code, data) {
@@ -213,6 +214,15 @@ export async function estimateGas(rpc, { from, to, value = 0n, data }) {
   const params = { from, to, value: numberToHex(value) };
   if (data) params.data = data;
   return hexToBigInt(await rpc.call('eth_estimateGas', [params]));
+}
+
+/** The L1 fee oracle of a network that has one at the standard OP-stack / Scroll address. */
+export async function detectL1Oracle(rpc) {
+  for (const address of L1_ORACLES) {
+    const code = await rpc.call('eth_getCode', [address, 'latest']);
+    if (code && code !== '0x') return address;
+  }
+  return undefined;
 }
 
 /** L1 data fee on OP-stack / Scroll chains, charged on top of gas × fee. */

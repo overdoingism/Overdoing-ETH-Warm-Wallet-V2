@@ -4,6 +4,8 @@ import { WalletError } from './errors.js';
 // and for eth_feeHistory / baseFeePerGas support. Users can add their own networks.
 const OP_ORACLE = '0x420000000000000000000000000000000000000F';
 const SCROLL_ORACLE = '0x5300000000000000000000000000000000000002';
+/** Where an L1 fee oracle lives on OP-stack and Scroll chains; used to recognise custom L2s. */
+export const L1_ORACLES = [OP_ORACLE, SCROLL_ORACLE];
 
 // l1Oracle: OP-stack style GasPriceOracle (getL1Fee(bytes)); the L1 data fee is charged
 // on top of gasLimit × fee, so "send max" must leave room for it.

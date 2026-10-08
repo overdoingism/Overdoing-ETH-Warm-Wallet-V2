@@ -11,6 +11,7 @@ import {
   createRpc,
   estimateGas,
   getAccountInfo,
+  detectL1Oracle,
   getL1Fee,
   getNftInfo,
   getRevertReason,
@@ -188,6 +189,9 @@ function freshInfo() {
  * changed is dropped, so it can never fill the form for a different network or account.
  */
 const queryContext = () => `${currentChain().id}|${val('rpcUrl')}|${state.account?.address ?? ''}`;
+
+/** Built-in L2s name their L1 fee oracle; custom networks get theirs detected by "Fetch info". */
+const l1Oracle = () => currentChain().l1Oracle ?? freshInfo()?.l1Oracle;
 
 function setAccount(acc) {
   state.account = acc;
@@ -387,7 +391,10 @@ async function fetchInfo() {
   const acc = requireAccount();
   const chain = currentChain();
   const context = queryContext();
-  const info = await getAccountInfo(rpc(), acc.address, chain.id);
+  const client = rpc();
+  const info = await getAccountInfo(client, acc.address, chain.id);
+  // A custom network may be an L2 that charges an extra L1 data fee.
+  if (chain.custom && !chain.l1Oracle) info.l1Oracle = await detectL1Oracle(client).catch(() => undefined);
   if (queryContext() !== context) return;
   state.info = { ...info, fetchedAt: new Date() };
   renderInfo();
@@ -602,7 +609,7 @@ function updateFeeHint() {
   try {
     const gas = parseInteger(val('gasLimit'), 'gas');
     const price = parseGwei(radio('feeType') === 'legacy' ? val('gasPrice') : val('maxFee'), 'fee');
-    $('feeHint').textContent = t('send.maxCostHint', { cost: formatAmount(gas * price, 18), sym: chain.symbol }) + (chain.l1Oracle ? t('send.plusL1') : '');
+    $('feeHint').textContent = t('send.maxCostHint', { cost: formatAmount(gas * price, 18), sym: chain.symbol }) + (l1Oracle() ? t('send.plusL1') : '');
   } catch {
     $('feeHint').textContent = '';
   }
@@ -683,9 +690,13 @@ async function fillMax() {
     }
     const { tx } = buildTransaction({ ...req, amount: '0', gas: val('gasLimit') });
     let reserve = maxCost(tx);
-    if (chain.l1Oracle) {
-      // L1 data fee is charged on top; keep twice the current estimate in reserve.
-      const l1 = await getL1Fee(client, chain.l1Oracle, { ...tx, value: info.balance }).catch(() => 0n);
+    const oracle = l1Oracle();
+    if (oracle) {
+      // L1 data fee is charged on top; keep twice the current estimate in reserve. Without
+      // an estimate the transaction would be rejected, so do not guess.
+      const l1 = await getL1Fee(client, oracle, { ...tx, value: info.balance }).catch(() => {
+        throw new WalletError('err.l1Fee');
+      });
       reserve += l1 * 2n;
     }
     const max = info.balance - reserve;
@@ -728,7 +739,7 @@ function reviewRows(req, built, chain) {
   if (s.contract) rows.push([t(s.asset === 'erc20' ? 'rv.tokenContract' : 'rv.nftContract'), s.contract, 'mono']);
   if (s.asset === 'erc20') rows.push([t('rv.rawAmount'), t('rv.rawUnits', { raw: s.amount.toString(), dec: String(s.decimals) })]);
   rows.push(['Nonce', String(s.nonce)], [t('rv.gasLimit'), s.gas.toString()], [t('rv.fee'), feeText(built.tx)]);
-  rows.push([t('rv.maxCost'), `${formatAmount(s.maxCost, 18)} ${chain.symbol}${chain.l1Oracle ? t('send.plusL1') : ''}`]);
+  rows.push([t('rv.maxCost'), `${formatAmount(s.maxCost, 18)} ${chain.symbol}${l1Oracle() ? t('send.plusL1') : ''}`]);
   const info = freshInfo();
   if (info) {
     const after = info.balance - s.maxCost - (s.asset === 'native' ? s.amount : 0n);

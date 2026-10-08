@@ -436,3 +436,39 @@ test('the built file is self-contained', async () => {
   expect(html).not.toMatch(/<link[^>]+href=/i);
   expect(html).toMatch(/Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/);
 });
+
+// Last, because it gives the local chain an L1 fee oracle like an OP-stack L2.
+test('custom L2 network: "max" reserves the L1 data fee, and refuses when it is unavailable', async ({ page }) => {
+  const problems = await openWallet(page);
+  const p = provider();
+  const oracle = '0x420000000000000000000000000000000000000F';
+  const l1Fee = parseEther('0.001');
+  // Runtime code that answers every call with l1Fee (PUSH32 value, MSTORE, RETURN 32 bytes).
+  await p.send('hardhat_setCode', [oracle, `0x7f${l1Fee.toString(16).padStart(64, '0')}60005260206000f3`]);
+  try {
+    const from = account(16);
+    const to = account(17).address;
+    await addHardhat(page);
+    await loadKey(page, from.privateKey);
+    await fetchInfo(page);
+    await expect(page.locator('#feeHint')).toContainText('L1');
+    await page.fill('#toAddr', to);
+    await page.click('#btnMax');
+    await expect(page.locator('#amount')).not.toHaveValue('');
+    const balance = await p.getBalance(from.address);
+    const amount = parseEther(await page.locator('#amount').inputValue());
+    const gasReserve = BigInt(await page.locator('#gasLimit').inputValue()) * parseEther(await page.locator('#maxFee').inputValue()) / 10n ** 9n;
+    expect(balance - amount - gasReserve).toBeGreaterThanOrEqual(2n * l1Fee);
+
+    // An oracle that cannot answer must not be treated as "no L1 fee".
+    await p.send('hardhat_setCode', [oracle, '0x60006000fd']);
+    await page.fill('#amount', '');
+    await page.click('#btnMax');
+    await expect(page.locator('#alMsg')).toContainText('L1 資料費');
+    await page.locator('#dlgAlert [data-close]').click();
+    await expect(page.locator('#amount')).toHaveValue('');
+  } finally {
+    await p.send('hardhat_setCode', [oracle, '0x']);
+  }
+  expect(problems).toEqual([]);
+});
