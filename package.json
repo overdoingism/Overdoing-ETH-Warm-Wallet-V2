@@ -1,0 +1,40 @@
+{
+  "name": "overdoing-eth-warm-wallet",
+  "version": "2.0.0",
+  "description": "Overdoing ETH Warm Wallet v2 - single-file online/offline (air-gapped) EVM wallet",
+  "scripts": {
+    "test": "vitest run test/unit",
+    "build": "node build.mjs",
+    "test:e2e": "playwright test",
+    "verify-tokens": "node scripts/verify-tokens.mjs"
+  },
+  "keywords": [],
+  "author": "overdoingism (v2 code written by Claude AI, Anthropic)",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@noble/ciphers": "1.3.0",
+    "@noble/hashes": "1.8.0",
+    "@scure/bip32": "1.7.0",
+    "@scure/bip39": "1.6.0",
+    "qr": "0.7.2",
+    "viem": "2.57.4"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "4.9.6",
+    "@playwright/test": "1.64.0",
+    "esbuild": "0.28.2",
+    "ethers": "6.17.0",
+    "hardhat": "2.29.1",
+    "vitest": "5.0.3"
+  },
+  "overrides": {
+    "viem": {
+      "@noble/curves": "1.9.7"
+    },
+    "ox": {
+      "@noble/curves": "1.9.7"
+    }
+  }
+}

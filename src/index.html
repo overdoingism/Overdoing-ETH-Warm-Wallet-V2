@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>Overdoing ETH Warm Wallet</title>
+<style>__CSS__</style>
+</head>
+<body>
+<noscript><p class="noscript">This wallet needs JavaScript. / 此錢包需要啟用 JavaScript。</p></noscript>
+
+<header class="top">
+  <div class="brand">
+    <h1>Overdoing ETH <span data-i18n="app.warm"></span></h1>
+    <span class="ver">v__VERSION__</span>
+  </div>
+  <div class="top-actions">
+    <button id="btnScan" class="btn primary" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg><span data-i18n="scan.button"></span></button>
+    <button id="btnLang" class="btn" type="button" lang="en">EN</button>
+  </div>
+</header>
+
+<main>
+  <section class="card" id="secAccount">
+    <h2><span class="step">1</span><span data-i18n="acct.title"></span></h2>
+    <div id="acctInput">
+      <label for="keyInput" data-i18n="acct.inputLabel"></label>
+      <div class="secret">
+        <textarea id="keyInput" class="masked" rows="3" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-i18n-ph="acct.inputPh"></textarea>
+        <button id="btnReveal" class="btn small" type="button" data-i18n="acct.show"></button>
+      </div>
+      <p class="hint" data-i18n="acct.inputHint"></p>
+      <div id="mnemonicOpts" class="grid2" hidden>
+        <label><span data-i18n="acct.passphrase"></span>
+          <input id="passphrase" type="password" autocomplete="off" spellcheck="false" data-i18n-ph="acct.passphrasePh"></label>
+        <label><span data-i18n="acct.path"></span>
+          <input id="derivePath" type="text" value="m/44'/60'/0'/0/0" autocomplete="off" spellcheck="false"></label>
+        <p class="hint span2" data-i18n="acct.pathHint"></p>
+      </div>
+      <div class="row">
+        <button id="btnLoad" class="btn primary" type="button" data-i18n="acct.load"></button>
+        <button id="btnKeystore" class="btn" type="button" data-i18n="acct.keystore"></button>
+        <button id="btnVault" class="btn" type="button" data-i18n="acct.vault"></button>
+        <input id="ksFile" type="file" accept=".json,application/json,text/plain" hidden>
+      </div>
+    </div>
+    <div id="acctView" hidden>
+      <div class="acct-head">
+        <span id="acctBadge" class="badge"></span>
+        <code id="acctAddr" class="addr"></code>
+      </div>
+      <div id="acctPathRow" class="inline-form" hidden>
+        <label><span data-i18n="acct.path"></span> <input id="acctPath" type="text" autocomplete="off" spellcheck="false"></label>
+        <button id="btnApplyPath" class="btn small" type="button" data-i18n="acct.applyPath"></button>
+      </div>
+      <div class="row">
+        <button id="btnCopyAddr" class="btn small" type="button" data-i18n="btn.copy"></button>
+        <button id="btnAddrQr" class="btn small" type="button" data-i18n="acct.addrQr"></button>
+        <button id="btnSaveVault" class="btn small" type="button" data-i18n="acct.saveVault"></button>
+        <button id="btnExportKs" class="btn small" type="button" data-i18n="acct.exportKs"></button>
+        <button id="btnLogout" class="btn small" type="button" data-i18n="acct.logout"></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="secNet">
+    <h2><span class="step">2</span><span data-i18n="net.title"></span></h2>
+    <div class="grid2">
+      <label><span data-i18n="net.chain"></span><select id="chainSel"></select></label>
+      <label><span>RPC</span><input id="rpcUrl" type="url" list="rpcList" autocomplete="off" spellcheck="false"></label>
+      <datalist id="rpcList"></datalist>
+    </div>
+    <div class="row">
+      <button id="btnInfo" class="btn" type="button" data-i18n="net.fetch"></button>
+      <span class="hint" data-i18n="net.needOnline"></span>
+    </div>
+    <dl id="infoBox" class="info" hidden>
+      <dt data-i18n="net.block"></dt><dd id="infoBlock"></dd>
+      <dt data-i18n="net.balance"></dt><dd id="infoBal"></dd>
+      <dt>Nonce</dt><dd id="infoNonce"></dd>
+      <dt data-i18n="net.fee"></dt><dd id="infoFee"></dd>
+    </dl>
+  </section>
+
+  <section class="card" id="secSend">
+    <h2><span class="step">3</span><span data-i18n="send.title"></span></h2>
+    <div class="seg" role="radiogroup">
+      <label><input type="radio" name="asset" value="native" checked><span id="assetNativeLabel">ETH</span></label>
+      <label><input type="radio" name="asset" value="erc20"><span data-i18n="send.token"></span></label>
+      <label><input type="radio" name="asset" value="nft"><span>NFT</span></label>
+    </div>
+    <div id="tokenBox" class="sub" hidden>
+      <label><span data-i18n="send.tokenPick"></span><select id="tokenSel"></select></label>
+      <label><span data-i18n="send.contract"></span><input id="tokenAddr" type="text" autocomplete="off" spellcheck="false" placeholder="0x…"></label>
+      <div class="grid2 pair">
+        <label><span data-i18n="send.symbol"></span><input id="tokenSym" type="text" autocomplete="off" spellcheck="false"></label>
+        <label><span data-i18n="send.decimals"></span><input id="tokenDec" type="text" inputmode="numeric" autocomplete="off"></label>
+      </div>
+      <div class="row">
+        <button id="btnTokenInfo" class="btn small" type="button" data-i18n="send.query"></button>
+        <span id="tokenStatus" class="hint"></span>
+      </div>
+    </div>
+    <div id="nftBox" class="sub" hidden>
+      <label><span data-i18n="send.contract"></span><input id="nftAddr" type="text" autocomplete="off" spellcheck="false" placeholder="0x…"></label>
+      <div class="grid2 pair">
+        <label><span>Token ID</span><input id="nftId" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"></label>
+        <label><span data-i18n="send.standard"></span><select id="nftStd"><option value="erc721">ERC-721</option><option value="erc1155">ERC-1155</option></select></label>
+      </div>
+      <div class="row">
+        <button id="btnNftInfo" class="btn small" type="button" data-i18n="send.query"></button>
+        <span id="nftStatus" class="hint"></span>
+      </div>
+    </div>
+    <label><span data-i18n="send.to"></span><input id="toAddr" type="text" autocomplete="off" spellcheck="false" placeholder="0x…"></label>
+    <p id="toHint" class="hint"></p>
+    <div id="amountRow">
+      <label><span data-i18n="send.amount"></span>
+        <span class="unit-input"><input id="amount" type="text" inputmode="decimal" autocomplete="off"><span id="amountUnit"></span></span>
+      </label>
+      <button id="btnMax" class="btn link" type="button" data-i18n="send.max"></button>
+    </div>
+    <fieldset class="fees">
+      <legend data-i18n="send.feeTitle"></legend>
+      <div class="grid2 pair">
+        <label><span>Nonce</span><input id="nonce" type="text" inputmode="numeric" autocomplete="off"></label>
+        <label><span data-i18n="send.gasLimit"></span><input id="gasLimit" type="text" inputmode="numeric" autocomplete="off"></label>
+      </div>
+      <div class="seg small" role="radiogroup">
+        <label><input type="radio" name="feeType" value="1559" checked><span>EIP-1559</span></label>
+        <label><input type="radio" name="feeType" value="legacy"><span>Legacy</span></label>
+      </div>
+      <div id="fee1559" class="grid2 pair">
+        <label><span data-i18n="send.maxFee"></span><input id="maxFee" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label><span data-i18n="send.tip"></span><input id="tipFee" type="text" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <div id="feeLegacy" hidden>
+        <label><span data-i18n="send.gasPrice"></span><input id="gasPrice" type="text" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <p id="feeHint" class="hint"></p>
+    </fieldset>
+    <button id="btnSign" class="btn primary big" type="button"></button>
+  </section>
+
+  <section class="card" id="secResult" hidden>
+    <h2 id="resultTitle"></h2>
+    <div id="resultQrBox" class="qr">
+      <img id="resultQr" alt="QR code">
+      <p id="resultHint" class="hint"></p>
+    </div>
+    <dl id="resultRows" class="info"></dl>
+    <label><span data-i18n="res.content"></span><textarea id="resultText" rows="4" readonly spellcheck="false"></textarea></label>
+    <div class="row">
+      <button id="btnCopyResult" class="btn small" type="button" data-i18n="btn.copy"></button>
+      <button id="btnBroadcast" class="btn primary" type="button" data-i18n="res.broadcast" hidden></button>
+    </div>
+    <div id="bcastStatus" class="status" hidden></div>
+  </section>
+
+  <details class="card" id="secAdv">
+    <summary data-i18n="adv.title"></summary>
+    <section>
+      <h3 data-i18n="msg.title"></h3>
+      <p class="hint" data-i18n="msg.hint"></p>
+      <textarea id="msgInput" rows="3" spellcheck="false" data-i18n-ph="msg.ph"></textarea>
+      <button id="btnSignMsg" class="btn" type="button"></button>
+    </section>
+    <section>
+      <h3 data-i18n="cnet.title"></h3>
+      <p class="hint" data-i18n="cnet.hint"></p>
+      <div class="grid2">
+        <label><span data-i18n="cnet.name"></span><input id="netName" type="text" autocomplete="off"></label>
+        <label><span>Chain ID</span><input id="netId" type="text" inputmode="numeric" autocomplete="off"></label>
+        <label><span data-i18n="cnet.symbol"></span><input id="netSym" type="text" autocomplete="off"></label>
+        <label><span>RPC</span><input id="netRpc" type="url" autocomplete="off" spellcheck="false" placeholder="https://"></label>
+        <label class="span2"><span data-i18n="cnet.explorer"></span><input id="netExplorer" type="url" autocomplete="off" spellcheck="false" placeholder="https://"></label>
+      </div>
+      <div class="row">
+        <button id="btnAddNet" class="btn small" type="button" data-i18n="cnet.add"></button>
+        <button id="btnDelNet" class="btn small" type="button" data-i18n="cnet.del"></button>
+      </div>
+    </section>
+  </details>
+</main>
+
+<footer>
+  <p><strong>Overdoing ETH Warm Wallet</strong> v__VERSION__ · <a href="https://github.com/overdoingism/Overdoing-ETH-Warm-Wallet" target="_blank" rel="noopener noreferrer">GitHub</a> · MIT</p>
+  <p class="warn-text" data-i18n="foot.disclaimer"></p>
+  <p data-i18n="foot.credit"></p>
+  <p data-i18n="foot.libs"></p>
+  <p><span data-i18n="foot.donate"></span> <code class="addr">0x7cE987d1C417DBb86CfE6f9Ac6cfEDF7554853AF</code>
+    <button id="btnCopyDonate" class="btn small" type="button" data-i18n="btn.copy"></button></p>
+  <p><button id="btnClear" class="btn small" type="button" data-i18n="foot.clear"></button></p>
+</footer>
+
+<div id="toast" role="status" hidden></div>
+
+<dialog id="dlgConfirm">
+  <h3 id="cfTitle"></h3>
+  <dl id="cfRows" class="info"></dl>
+  <ul id="cfWarn" class="warnings"></ul>
+  <div class="actions">
+    <button class="btn" type="button" data-close="" data-i18n="btn.cancel"></button>
+    <button id="cfOk" class="btn primary" type="button" data-close="ok"></button>
+  </div>
+</dialog>
+
+<dialog id="dlgAlert">
+  <h3 id="alTitle"></h3>
+  <p id="alMsg" class="pre"></p>
+  <div class="actions"><button class="btn primary" type="button" data-close="ok" data-i18n="btn.close"></button></div>
+</dialog>
+
+<dialog id="dlgPw">
+  <h3 id="pwTitle"></h3>
+  <div id="pwIntro"></div>
+  <label id="pwNameRow"><span data-i18n="pw.name"></span><input id="pwName" type="text" autocomplete="off"></label>
+  <label><span data-i18n="pw.password"></span><input id="pw1" type="password" autocomplete="new-password"></label>
+  <label id="pw2Row"><span data-i18n="pw.again"></span><input id="pw2" type="password" autocomplete="new-password"></label>
+  <label id="pwAckRow" class="ack"><input id="pwAck" type="checkbox"><span data-i18n="vault.ack"></span></label>
+  <p id="pwErr" class="err-text"></p>
+  <div class="actions">
+    <button class="btn" type="button" data-close="" data-i18n="btn.cancel"></button>
+    <button id="pwOk" class="btn primary" type="button" data-i18n="btn.ok"></button>
+  </div>
+</dialog>
+
+<dialog id="dlgBusy">
+  <p id="busyText"></p>
+  <progress id="busyBar" max="1" value="0"></progress>
+</dialog>
+
+<dialog id="dlgScan">
+  <h3 data-i18n="scan.title"></h3>
+  <div class="video-wrap"><video id="scanVideo" playsinline muted></video><canvas id="scanOverlay"></canvas></div>
+  <p id="scanStatus" class="hint"></p>
+  <div class="row">
+    <button id="btnScanSwitch" class="btn small" type="button" data-i18n="scan.switch"></button>
+    <button id="btnScanImage" class="btn small" type="button" data-i18n="scan.image"></button>
+    <input id="scanFile" type="file" accept="image/*" hidden>
+  </div>
+  <label><span data-i18n="scan.paste"></span><textarea id="scanText" rows="3" spellcheck="false" autocomplete="off"></textarea></label>
+  <div class="actions">
+    <button class="btn" type="button" data-close="" data-i18n="btn.close"></button>
+    <button id="btnScanUse" class="btn primary" type="button" data-i18n="scan.use"></button>
+  </div>
+</dialog>
+
+<dialog id="dlgVault">
+  <h3 data-i18n="vault.title"></h3>
+  <ul id="vaultList" class="vault-list"></ul>
+  <p id="vaultEmpty" class="hint" data-i18n="vault.empty"></p>
+  <div class="actions"><button class="btn" type="button" data-close="" data-i18n="btn.close"></button></div>
+</dialog>
+
+<dialog id="dlgQr">
+  <h3 id="qrTitle"></h3>
+  <div class="qr"><img id="qrImg" alt="QR code"></div>
+  <code id="qrText" class="addr"></code>
+  <p id="qrHint" class="hint"></p>
+  <div class="actions"><button class="btn primary" type="button" data-close="ok" data-i18n="btn.close"></button></div>
+</dialog>
+
+<script>__JS__</script>
+</body>
+</html>
