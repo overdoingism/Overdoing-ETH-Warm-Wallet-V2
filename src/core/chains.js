@@ -12,7 +12,7 @@ export const CHAINS = [
   { id: 42161, name: 'Arbitrum One', symbol: 'ETH', rpc: ['https://arb1.arbitrum.io/rpc', 'https://arbitrum-one-rpc.publicnode.com'], explorer: 'https://arbiscan.io' },
   { id: 10, name: 'OP Mainnet', symbol: 'ETH', rpc: ['https://mainnet.optimism.io', 'https://optimism-rpc.publicnode.com'], explorer: 'https://optimistic.etherscan.io', l1Oracle: OP_ORACLE },
   { id: 8453, name: 'Base', symbol: 'ETH', rpc: ['https://mainnet.base.org', 'https://base-rpc.publicnode.com'], explorer: 'https://basescan.org', l1Oracle: OP_ORACLE },
-  { id: 137, name: 'Polygon PoS', symbol: 'POL', rpc: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon.drpc.org'], explorer: 'https://polygonscan.com' },
+  { id: 137, name: 'Polygon PoS', symbol: 'POL', rpc: ['https://polygon.drpc.org', 'https://polygon.gateway.tenderly.co', 'https://polygon-bor-rpc.publicnode.com'], explorer: 'https://polygonscan.com' },
   { id: 56, name: 'BNB Smart Chain', symbol: 'BNB', rpc: ['https://bsc-dataseed.bnbchain.org', 'https://bsc-rpc.publicnode.com'], explorer: 'https://bscscan.com' },
   { id: 43114, name: 'Avalanche C-Chain', symbol: 'AVAX', rpc: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche-c-chain-rpc.publicnode.com'], explorer: 'https://snowtrace.io' },
   { id: 100, name: 'Gnosis', symbol: 'XDAI', rpc: ['https://rpc.gnosischain.com', 'https://gnosis-rpc.publicnode.com'], explorer: 'https://gnosisscan.io' },

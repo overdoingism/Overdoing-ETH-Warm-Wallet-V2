@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: [['list']],
   globalSetup: './test/e2e/global-setup.mjs',
   use: {
-    channel: 'msedge',
+    channel: process.env.OEWW_BROWSER_CHANNEL || 'msedge',
     headless: true,
     viewport: { width: 900, height: 1100 },
     acceptDownloads: true,

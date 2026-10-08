@@ -315,6 +315,69 @@ test('token safety: contract fields reset on network change; missing contract is
   expect(problems).toEqual([]);
 });
 
+test('ERC1155 "max" only uses a balance looked up for the contract and token ID in the form', async ({ page }) => {
+  const problems = await openWallet(page);
+  const c = contracts();
+  await addHardhat(page);
+  await loadKey(page, account(0).privateKey);
+  await pickAsset(page, 'nft');
+  await page.fill('#nftAddr', c.erc1155);
+  await page.fill('#nftId', '7');
+  await page.click('#btnNftInfo');
+  await expect(page.locator('#nftStd')).toHaveValue('erc1155');
+  const held = await new Contract(c.erc1155, ERC1155_ABI, provider()).balanceOf(account(0).address, 7);
+  await page.click('#btnMax');
+  await expect(page.locator('#amount')).toHaveValue(held.toString());
+
+  for (const [field, value] of [['#nftId', '8'], ['#nftAddr', account(19).address]]) {
+    await page.fill('#nftAddr', c.erc1155);
+    await page.fill('#nftId', '7');
+    await page.fill(field, value);
+    await page.fill('#amount', '');
+    await page.click('#btnMax');
+    await expect(page.locator('#alMsg')).toHaveText('請先按 NFT 的「查詢」取得持有數量。');
+    await page.locator('#dlgAlert [data-close]').click();
+    await expect(page.locator('#amount')).toHaveValue('');
+  }
+  expect(problems).toEqual([]);
+});
+
+test('lookups answered after switching network are ignored', async ({ page }) => {
+  const problems = await openWallet(page);
+  await addHardhat(page);
+  await loadKey(page, account(0).privateKey);
+  // Hold every RPC reply until the network has been switched.
+  let release;
+  const gate = new Promise((r) => (release = r));
+  let started;
+  const requested = new Promise((r) => (started = r));
+  await page.route(RPC, async (route) => {
+    started();
+    await gate;
+    await route.continue();
+  });
+
+  await page.click('#btnInfo');
+  await requested;
+  await pickAsset(page, 'erc20');
+  await page.fill('#tokenAddr', contracts().erc20);
+  await page.click('#btnTokenInfo');
+  await page.selectOption('#chainSel', '11155111');
+  await expect(page.locator('#tokenAddr')).toHaveValue('');
+  release();
+  await expect(page.locator('#btnInfo')).toBeEnabled();
+  await expect(page.locator('#btnTokenInfo')).toBeEnabled();
+  await expect(page.locator('#dlgAlert')).toBeHidden();
+
+  // Nothing from the Hardhat replies leaked into the Sepolia form.
+  await expect(page.locator('#tokenAddr')).toHaveValue('');
+  await expect(page.locator('#tokenSym')).toHaveValue('');
+  await expect(page.locator('#tokenDec')).toHaveValue('');
+  await expect(page.locator('#nonce')).toHaveValue('');
+  await expect(page.locator('#infoBox')).toBeHidden();
+  expect(problems).toEqual([]);
+});
+
 /** A one-frame Y4M video showing `text` as a QR code, for Chromium's fake camera. */
 function qrVideo(text) {
   const W = 640;
@@ -340,7 +403,7 @@ test('scans a QR code from the camera', async () => {
   const video = join(tmpdir(), `oeww-qr-${process.pid}.y4m`);
   writeFileSync(video, qrVideo(address));
   const browser = await chromium.launch({
-    channel: 'msedge',
+    channel: process.env.OEWW_BROWSER_CHANNEL || 'msedge',
     headless: true,
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${video}`],
   });

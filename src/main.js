@@ -183,6 +183,12 @@ function freshInfo() {
   return i && i.chainId === currentChain().id && sameAddr(i.address, state.account?.address) ? i : null;
 }
 
+/**
+ * Network, RPC and account a lookup was started for. A reply that arrives after any of them
+ * changed is dropped, so it can never fill the form for a different network or account.
+ */
+const queryContext = () => `${currentChain().id}|${val('rpcUrl')}|${state.account?.address ?? ''}`;
+
 function setAccount(acc) {
   state.account = acc;
   state.info = null;
@@ -380,7 +386,9 @@ function showAddressQr() {
 async function fetchInfo() {
   const acc = requireAccount();
   const chain = currentChain();
+  const context = queryContext();
   const info = await getAccountInfo(rpc(), acc.address, chain.id);
+  if (queryContext() !== context) return;
   state.info = { ...info, fetchedAt: new Date() };
   renderInfo();
   $('nonce').value = String(info.nonce);
@@ -495,9 +503,12 @@ async function queryToken() {
   const acc = requireAccount();
   const chain = currentChain();
   const address = requireAddress(val('tokenAddr'), 'token').address;
+  const context = queryContext();
   const client = rpc();
   await assertChain(client, chain.id);
   const info = await getTokenInfo(client, address, acc.address);
+  // Dropped if the network, RPC, account or contract changed while waiting.
+  if (queryContext() !== context || !sameAddr(val('tokenAddr'), address)) return;
   const known = findToken(chain.id, address);
   $('tokenAddr').value = address;
   $('tokenDec').value = String(info.decimals);
@@ -508,17 +519,22 @@ async function queryToken() {
   updateAssetUi();
 }
 
-function renderNftStatus() {
-  const el = $('nftStatus');
+/** The last NFT lookup, only if it was for the network, contract and token ID now in the form. */
+function currentNft() {
   const n = state.nft;
-  const chain = currentChain();
   let tokenId;
   try {
     tokenId = parseInteger(val('nftId'), 'tokenId', { hex: true });
   } catch {
-    tokenId = undefined;
+    return null;
   }
-  if (!n || n.chainId !== chain.id || !sameAddr(n.address, val('nftAddr')) || n.tokenId !== tokenId) {
+  return n && n.chainId === currentChain().id && sameAddr(n.address, val('nftAddr')) && n.tokenId === tokenId ? n : null;
+}
+
+function renderNftStatus() {
+  const el = $('nftStatus');
+  const n = currentNft();
+  if (!n) {
     el.textContent = '';
     return;
   }
@@ -541,10 +557,13 @@ async function queryNft() {
   const acc = requireAccount();
   const chain = currentChain();
   const address = requireAddress(val('nftAddr'), 'token').address;
-  const tokenId = parseInteger(val('nftId'), 'tokenId', { hex: true });
+  const idText = val('nftId');
+  const tokenId = parseInteger(idText, 'tokenId', { hex: true });
+  const context = queryContext();
   const client = rpc();
   await assertChain(client, chain.id);
   const info = await getNftInfo(client, address, tokenId, acc.address);
+  if (queryContext() !== context || !sameAddr(val('nftAddr'), address) || val('nftId') !== idText) return;
   $('nftAddr').value = address;
   $('nftStd').value = info.standard;
   state.nft = { chainId: chain.id, address, tokenId, ...info };
@@ -678,8 +697,9 @@ async function fillMax() {
     if (!tk || tk.chainId !== chain.id || !sameAddr(tk.address, val('tokenAddr')) || tk.balance === undefined) throw new WalletError('err.needTokenQuery');
     $('amount').value = formatAmount(tk.balance, tk.decimals);
   } else if (asset === 'erc1155') {
-    if (state.nft?.balance === undefined) throw new WalletError('err.needNftQuery');
-    $('amount').value = state.nft.balance.toString();
+    const n = currentNft();
+    if (n?.balance === undefined) throw new WalletError('err.needNftQuery');
+    $('amount').value = n.balance.toString();
   }
 }
 
