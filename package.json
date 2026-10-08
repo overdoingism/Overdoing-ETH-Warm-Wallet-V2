@@ -1,6 +1,6 @@
 {
   "name": "overdoing-eth-warm-wallet",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Overdoing ETH Warm Wallet v2 - single-file online/offline (air-gapped) EVM wallet",
   "scripts": {
     "test": "vitest run test/unit",
